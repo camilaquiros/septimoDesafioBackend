@@ -3,10 +3,7 @@ import express from 'express'
 import { engine } from 'express-handlebars'
 import { __dirname } from './path.js'
 import path from 'path'
-import productsRouter from './routes/products.routes.js'
-import cartRouter from './routes/cart.routes.js'
-import userRouter from './routes/users.routes.js'
-import sessionRouter from './routes/sessions.routes.js'
+import router from './routes/index.routes.js'
 import passport from 'passport'
 import cookieParser from 'cookie-parser'
 import session from 'express-session'
@@ -24,12 +21,12 @@ app.use(express.json())
 app.engine('handlebars', engine())
 app.set('view engine', 'handlebars')
 app.set('views', path.resolve(__dirname, './views'))
-app.use(cookieParser(process.env.SIGNED_COOKIE)) //firmar cookie
+app.use(cookieParser(process.env.JWT_SECRET)) //firmar cookie
 app.use(session({
     store: MongoStore.create({
         mongoUrl: process.env.MONGO_URL,
         mongoOptions: {usenewUrlParser: true, useUnifiedTopology: true},
-        ttl: 120 //tiempo en segundos (120 días = 10368000)
+        ttl: 120
     }),
     secret: process.env.SESSION_SECRET,
     resave:false,
@@ -52,17 +49,17 @@ app.get('/admin', auth, (req,res) => {
     res.send('sos admin')
 })
 
-app.post('/products', (req,res) => {
-    req.session.destroy()
-    res.redirect('/')
+app.post('/api/products', (req,res) => {
+    if (req.session) {
+        req.session.destroy()
+        res.redirect('/')
+    }
+    res.clearCookie('jwtCookie')
 })
 
 //rutas
-app.use('/', sessionRouter)
-app.use('/user', userRouter)
-app.use(express.static(path.join(__dirname, '/public')))
-app.use('/products', productsRouter)
-app.use('/carts', cartRouter)
+app.use('/', router)
+router.use(express.static(path.join(__dirname, '/public')))
 
 //server
 app.listen(PORT, () => {

@@ -1,6 +1,7 @@
 import local from 'passport-local'
 import passport from 'passport'
 import GithubStrategy from 'passport-github2'
+import jwt from 'passport-jwt'
 import { createHash, validatePassword } from '../utils/bcrypt.js'
 import { userModel } from '../models/users.models.js'
 
@@ -8,8 +9,32 @@ import { userModel } from '../models/users.models.js'
 
 //defino estrategia a utilizar
 const LocalStrategy = local.Strategy
+const JWTStrategy = jwt.Strategy
+const ExtractJWT = jwt.ExtractJwt //extractor de los headers de la consulta
 
 export const initializePassport = () => {
+    
+    const cookieExtractor = req => {
+        console.log(req.cookies)
+        //{} objeto vacío = no hay cookies, no es lo mismo a que no existe la cookie
+        //si existe cookies, consulte por mi cookie, y sino asigno null 
+        const token = req.cookies ? req.cookies.jwtCookie : {}
+        console.log(token)
+        return token
+    }
+
+    passport.use('jwt', new JWTStrategy({
+        jwtFromRequest: ExtractJWT.fromExtractors([cookieExtractor]), //consulto el token de las cookies
+        secretOrKey: process.env.JWT_SECRET
+    }, async (jwt_payload, done) => {
+        try {
+            return done(null, jwt_payload) //retorno el contenido del token
+        } catch (error) {
+            return done(error)
+        }
+    }))
+
+
     // done es como si fuera un res.status(), el callback de respuesta
     passport.use('register', new LocalStrategy(
         {passReqToCallback: true, usernameField: 'email'}, async (req, username, password, done) => {
@@ -61,9 +86,7 @@ export const initializePassport = () => {
     }, async (accessToken, refreshToken, profile, done) => {
         try {
             const user = await userModel.findOne({email: profile._json.email})
-            if(user) {
-                done(null,user)
-            } else {
+            if(!user) {
                 const userCreated = await userModel.create({
                     first_name: profile._json.name,
                     last_name: ' ',
@@ -72,6 +95,8 @@ export const initializePassport = () => {
                     password: 'password'
                 })
                 done(null, userCreated)
+            } else {
+                done(null,user)
             }
         } catch (error) {
             done(error)

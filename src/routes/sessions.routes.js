@@ -1,7 +1,7 @@
 import { Router } from "express";
-/* import { userModel } from "../models/users.models.js";
-import { validatePassword } from "../utils/bcrypt.js"; */
+import { passportError, authorization } from "../utils/messageErrors.js";
 import passport from "passport";
+import { generateToken } from "../utils/jwt.js";
 
 const sessionRouter = Router();
 
@@ -14,44 +14,30 @@ sessionRouter.post('/', passport.authenticate('login'), async (req,res) => {
         if(!req.user) {
             return res.status(401).send({mensaje: "Invalidate user"})
         }
-
-        req.session.user = {
-            first_name: req.user.first_name,
-            last_name: req.user.last_name,
-            age: req.user.age,
-            email: req.user.email
-        }
-
+        const token = generateToken(req.user)
+        res.cookie('jwtCookie', token, {
+            maxAge: 43200000
+        }) 
         res.redirect('/products') 
     } catch (error) {
         res.status(500).send({mensaje: `Error al iniciar sesion ${error}`})
     }
 })
 
-//HASH SIN PASSPORT(COMENTADA)
-
-/* sessionRouter.post('/', async (req,res) => {
-    const {email,password} = req.body
-    req.session.email = email
-    try {
-        if(req.session.login){
-            res.redirect('/products')
-        }
-        const user = await userModel.findOne({email:email})
-        if(user) {
-            if(validatePassword(password, user.password)) {
-                req.session.login = true
-                res.redirect('/products')
-            } else {
-                res.status(401).send({resultado: 'Unauthorized', message: user})
-            }
-        }else {
-            res.status(404).send({resultado: 'Not Found', message: user})
-        }
-    } catch(error) {
-        res.status(400).send({error: `No se pudo loguear: ${error}`})
+sessionRouter.get('/testJWT', passport.authenticate('jwt', { session: false}), 
+async (req, res) => {
+    res.status(200).send({ mensaje: req.user })
+    req.session.user = {
+        first_name: req.user.user.first_name,
+        last_name: req.user.user.last_name,
+        age: req.user.user.age,
+        email: req.user.user.email
     }
-}) */
+})
+
+sessionRouter.get('/current', passportError('jwt'), authorization('admin'), (req, res) =>{
+    res.send(req.user)
+})
 
 sessionRouter.get('/github', passport.authenticate('github', {scope: ['user:email']}), async (req,res) => {
     res.redirect('products')
@@ -75,7 +61,7 @@ sessionRouter.post('/', passport.authenticate('login'), async (req,res) => {
             email: req.user.email
         }
 
-        res.status(200).send({payload: 'dsada'})
+        res.status(200).send({payload: req.user})
     } catch (error) {
         
     }
