@@ -11,7 +11,6 @@ export const passportError = (strategy) => {
             if (!user) {
                 return res.status(401).send({error: info.messages ? info.messages : info.toString()}) //si me envían info.messages, muestro la respuesta que me enviaron, sino muestro el objeto info pasado a string
             }
-
             req.user = user
             next()
         })(req, res, next) //esto es porque es un middleware
@@ -24,8 +23,9 @@ export const authorization = (rol) => {
         if (!req.user) {
             return res.status(401).send({error: 'User no autorizado'})
         }
-        if (req.user.user[0].rol != rol) { // si usuario tiene un rol distinto al ingresado como parámetro
-            return res.status(403).send({error: 'User no tiene los provilegios necesarios'})
+        if (req.user.user.rol != rol) { // si usuario tiene un rol distinto al ingresado como parámetro
+            return res.status(403).send({error: 'User no tiene los privilegios necesarios'})
         }
+        next()
     }
 }

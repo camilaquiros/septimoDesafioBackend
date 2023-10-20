@@ -15,11 +15,9 @@ const ExtractJWT = jwt.ExtractJwt //extractor de los headers de la consulta
 export const initializePassport = () => {
     
     const cookieExtractor = req => {
-        console.log(req.cookies)
         //{} objeto vacío = no hay cookies, no es lo mismo a que no existe la cookie
         //si existe cookies, consulte por mi cookie, y sino asigno null 
         const token = req.cookies ? req.cookies.jwtCookie : {}
-        console.log(token)
         return token
     }
 

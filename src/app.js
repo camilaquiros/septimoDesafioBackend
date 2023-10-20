@@ -33,29 +33,9 @@ app.use(session({
     saveUninitialized:false
 }))
 
-function auth(req,res,next) {
-    if(req.session.email == process.env.ADMIN_EMAIL && req.session.password == process.env.ADMIN_PASSWORD) {
-        return next() //continua con la ejecución normal de la ruta
-    }
-    return res.send('No tenes acceso a este contenido')
-}
-
 initializePassport()
 app.use(passport.initialize())
 app.use(passport.session())
-
-
-app.get('/admin', auth, (req,res) => {
-    res.send('sos admin')
-})
-
-app.post('/api/products', (req,res) => {
-    if (req.session) {
-        req.session.destroy()
-        res.redirect('/')
-    }
-    res.clearCookie('jwtCookie')
-})
 
 //rutas
 app.use('/', router)
